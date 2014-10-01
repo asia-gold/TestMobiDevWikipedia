@@ -27,7 +27,7 @@ public class ListActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.fragment_main);
+		setContentView(R.layout.activity_list);
 
 		ListView lvResult = (ListView) findViewById(R.id.lvResult);
 
@@ -44,6 +44,8 @@ public class ListActivity extends Activity {
 		if (array != null) {
 			adapter = new WikiListAdapter(this, R.id.lvResult, array);
 			lvResult.setAdapter(adapter);
+		} else {
+			finish();
 		}
 	}
 

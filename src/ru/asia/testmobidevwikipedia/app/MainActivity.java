@@ -1,26 +1,29 @@
 package ru.asia.testmobidevwikipedia.app;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.TextView.OnEditorActionListener;
 import android.widget.Toast;
 
-public class MainActivity extends Activity implements OnClickListener {
+public class MainActivity extends Activity {
 
-	AlertDialog dialog;
 	Button btnSearch;
 	EditText etSearch;
 	String finalResult;
@@ -32,10 +35,35 @@ public class MainActivity extends Activity implements OnClickListener {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		isInternetAvailable();
+		checkInternetAvailable();
 
 		btnSearch = (Button) findViewById(R.id.btnSearch);
 		etSearch = (EditText) findViewById(R.id.etSearch);
+		btnSearch.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View view) {
+				if (etSearch.getText().toString()
+						.matches(Constants.EMPTY_STRING)) {
+					Toast.makeText(getApplicationContext(),
+							getResources().getString(R.string.str_no_text),
+							Toast.LENGTH_LONG).show();
+				} else {
+					wikiSearch(etSearch.getText().toString());
+				}
+			}
+		});
+		
+		etSearch.setOnEditorActionListener(new OnEditorActionListener() {
+			
+			@Override
+			public boolean onEditorAction(TextView view, int actionId, KeyEvent event) {
+				if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+					wikiSearch(etSearch.getText().toString());
+				}
+				return false;
+			}
+		});
 
 		mStatusIntentFilter = new IntentFilter(Constants.BROADCAST_ACTION);
 		mWikiIntentReceiver = new WikiIntentReceiver();
@@ -43,8 +71,8 @@ public class MainActivity extends Activity implements OnClickListener {
 				mWikiIntentReceiver, mStatusIntentFilter);
 
 	}
-
-	private void isInternetAvailable() {
+	
+	private void checkInternetAvailable() {
 		boolean hasWifiNet = false;
 		boolean hasMobileNet = false;
 		ConnectivityManager manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -63,26 +91,10 @@ public class MainActivity extends Activity implements OnClickListener {
 		if (hasMobileNet || hasWifiNet) {
 			// Everything just fine
 		} else {
-			showAlertDialog(this);
+			Toast.makeText(this,
+					getResources().getString(R.string.str_intenet),
+					Toast.LENGTH_LONG).show();
 		}
-	}
-
-	public void showAlertDialog(Context context) {
-		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
-				context);
-		alertDialogBuilder.setTitle(Constants.ALERT_DIALOG_TITLE);
-		alertDialogBuilder.setMessage(Constants.ALERT_DIALOG_MESSAGE);
-		alertDialogBuilder.setIcon(android.R.drawable.ic_dialog_alert);
-		alertDialogBuilder.setPositiveButton("OK",
-				new DialogInterface.OnClickListener() {
-
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-					}
-				});
-
-		dialog = alertDialogBuilder.create();
-		dialog.show();
 	}
 
 	@Override
@@ -104,15 +116,6 @@ public class MainActivity extends Activity implements OnClickListener {
 		return super.onOptionsItemSelected(item);
 	}
 
-	@Override
-	public void onClick(View v) {
-		if (etSearch.getText().toString().matches(Constants.EMPTY_STRING)) {
-			Toast.makeText(this, "Поле поиска пусто", Toast.LENGTH_LONG).show();
-		} else {
-			wikiSearch(etSearch.getText().toString());
-		}
-	}
-
 	private void wikiSearch(String theQuest) {
 		Intent serviceIntent = new Intent(this, WikiIntentService.class);
 		serviceIntent.putExtra(Intent.EXTRA_TEXT, theQuest);
@@ -120,15 +123,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 
 	@Override
-	protected void onStop() {
-		super.onStop();
-		dialog.dismiss();
-	}
-
-	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		dialog.dismiss();
 		LocalBroadcastManager.getInstance(this).unregisterReceiver(
 				mWikiIntentReceiver);
 	}
